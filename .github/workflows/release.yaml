@@ -1,0 +1,79 @@
+name: Release Automation
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        type: boolean
+        description: 'Dry run flag'
+        required: true
+        default: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.REPO_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Determine next version
+        id: next_version
+        run: |
+          current_version=$(node -p "require('package.json').version")
+          echo "current_version: $current_version"
+          next_version=$(npm version minor --no-git-tag-version)
+          echo "version=$next_version" >> $GITHUB_OUTPUT
+
+      - name: Update version in files
+        run: |
+          sed -i 's/"version": ".*"/"version": "${{ steps.next_version.outputs.version }}"/' ./package.json
+
+      - name: Dry run output
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "Next version would be: ${{ steps.next_version.outputs.version }}"
+          echo "Changes that would be made:"
+          git diff
+
+      - name: Commit changes
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "Bump version to ${{ steps.next_version.outputs.version }}"
+
+      - name: Create and push tag
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git tag ${{ steps.next_version.outputs.version }}
+          git push origin ${{ steps.next_version.outputs.version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.next_version.outputs.version }}
+          name: Release ${{ steps.next_version.outputs.version }}
+          body: Release ${{ steps.next_version.outputs.version }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push changes
+        if: github.event.inputs.dry_run != 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
