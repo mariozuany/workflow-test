@@ -15,7 +15,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'GitHub Action' || github.event.pusher.name != 'GitHub Action' }}
+    if: ${{ github.actor != 'actions-user' || github.event.pusher.name != 'actions-user' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -36,6 +36,8 @@ jobs:
           echo "current_version: $current_version"
           next_version=$(npm version minor --no-git-tag-version)
           echo "version=$next_version" >> $GITHUB_OUTPUT
+          echo "${{ github.actor }}"
+          echo "${{ github.triggering_actor }}"
 
       - name: Update version in files
         run: |
