@@ -15,8 +15,13 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'actions-user' || github.event.pusher.name != 'actions-user' }}
     steps:
+      - name: Skip if commit is automated
+        if: contains(env.COMMIT_MESSAGE, '[skip ci]')
+        run: |
+          echo "Automated commit detected - skipping job"
+          exit 0
+
       - name: Checkout code
         uses: actions/checkout@v3
         with:
@@ -56,7 +61,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add package.json
-          git commit -m "Bump version to ${{ steps.next_version.outputs.version }}"
+          git commit -m "[skip ci] Bump version to ${{ steps.next_version.outputs.version }}"
 
       - name: Create and push tag
         if: github.event.inputs.dry_run != 'true'
