@@ -31,7 +31,7 @@ jobs:
       - name: Determine next version
         id: next_version
         run: |
-          current_version=$(node -p "require('package.json').version")
+          current_version=$(node -p "require('./package.json').version")
           echo "current_version: $current_version"
           next_version=$(npm version minor --no-git-tag-version)
           echo "version=$next_version" >> $GITHUB_OUTPUT
