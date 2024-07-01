@@ -15,6 +15,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'GitHub Action' || github.event.pusher.name != 'GitHub Action' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
